@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>India Clean Energy Dashboard | Interactive Renewables Map</title>
+    <meta name="description" content="Explore and visualize renewable energy growth across India. Interactive maps, capacity trends, state rankings, and clean power metrics from 2017-18 to 2024-25." />
+    
+    <!-- Open Graph SEO -->
+    <meta property="og:title" content="India Clean Energy Dashboard | Interactive Renewables Map" />
+    <meta property="og:description" content="Track wind, solar, and hydro capacity across India through an interactive map, rankings, and detailed trend lines." />
+    <meta property="og:type" content="website" />
+    
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Accessibility Skip Link -->
+    <a href="#inspectorPanel" class="back-btn" style="position: absolute; left: -9999px; z-index: 100;" onfocus="this.style.position='static';" onblur="this.style.position='absolute';">Skip to controls</a>
+    
+    <main class="app-shell">
+      <!-- Map Visualizer Stage -->
+      <section class="map-stage" aria-label="Interactive map of renewable energy capacity in India">
+        <div class="topbar">
+          <div class="title-area">
+            <p class="eyebrow">India Renewables Tracker</p>
+            <h1>Watch clean power spread across the map</h1>
+          </div>
+          <div class="controls-cluster">
+            <button id="startStory" class="story-launch-btn" title="Watch the story" aria-label="Watch the narrated story tour">
+              <span aria-hidden="true">▶</span> Watch the Story
+            </button>
+            <div class="stat-pill" aria-live="polite">
+              <span id="nationalTotal">220,096</span>
+              <small id="nationalTotalLabel">MW in 2024-25</small>
+            </div>
+            <button id="themeToggle" class="theme-toggle-btn" title="Toggle Light/Dark Theme" aria-label="Toggle light and dark theme">🌙</button>
+          </div>
+        </div>
+        
+        <div class="map-wrap">
+          <canvas id="indiaMap" aria-label="Interactive map showing renewable energy by state in India. Click to explore a state. Drag to pan, scroll to zoom."></canvas>
+          
+          <!-- Zoom Overlay Controls -->
+          <div class="map-controls" aria-label="Map navigation controls">
+            <button id="zoomIn" title="Zoom In" aria-label="Zoom In">+</button>
+            <button id="zoomOut" title="Zoom Out" aria-label="Zoom Out">−</button>
+            <button id="zoomReset" title="Reset Zoom & Pan" aria-label="Reset Map Zoom">⟲</button>
+          </div>
+
+          <!-- Custom Cursor Tooltip -->
+          <div id="mapTooltip" class="map-tooltip" role="tooltip" aria-hidden="true" style="opacity: 0;">
+            <div class="tooltip-header">
+              <strong id="tooltipState">State</strong>
+            </div>
+            <div class="tooltip-body">
+              <span id="tooltipValue">0 MW</span>
+              <span id="tooltipRank" class="tooltip-rank">#1 rank</span>
+            </div>
+          </div>
+          
+          <div class="map-legend" aria-hidden="true">
+            <span>Lower Capacity</span><i></i><span>Higher Capacity</span>
+          </div>
+        </div>
+        
+        <div class="timeline-card">
+          <button id="playButton" class="icon-button" aria-label="Play timeline animation">▶</button>
+          <div class="year-readout">
+            <strong id="yearLabel">2024-25</strong>
+            <span id="modeLabel">Total renewable capacity</span>
+          </div>
+          <input id="yearSlider" type="range" min="0" max="7" value="7" aria-label="Select Year Timeline" />
+        </div>
+      </section>
+      
+      <!-- Interactive Sidebar Inspector Panel -->
+      <aside id="inspectorPanel" class="inspector" aria-label="Details and control panel">
+        <!-- Energy Metric Selector Tabs -->
+        <div class="mode-tabs" role="tablist" aria-label="Map energy metric selector">
+          <button class="mode-tab active" data-mode="total" role="tab" aria-selected="true">Total</button>
+          <button class="mode-tab" data-mode="solar" role="tab" aria-selected="false">Solar</button>
+          <button class="mode-tab" data-mode="wind" role="tab" aria-selected="false">Wind</button>
+          <button class="mode-tab" data-mode="hydro" role="tab" aria-selected="false">Hydro</button>
+        </div>
+
+        <!-- Search Bar with Autocomplete -->
+        <div class="search-container">
+          <input type="text" id="stateSearch" placeholder="Search state (e.g. Rajasthan, Tamil Nadu)..." autocomplete="off" aria-label="Search state" />
+          <span class="search-icon" aria-hidden="true">🔍</span>
+          <button id="clearSearch" class="clear-search-btn" aria-label="Clear search text" style="display: none;">&times;</button>
+          <div id="autocompleteList" class="autocomplete-list" style="display: none;"></div>
+        </div>
+
+        <!-- State/National Specific Details Card -->
+        <section class="state-card" aria-labelledby="stateName">
+          <figure class="state-photo" id="statePhotoWrap" hidden>
+            <img id="statePhoto" alt="" loading="lazy" />
+            <figcaption id="statePhotoCredit"></figcaption>
+          </figure>
+          <div class="state-card-header">
+            <p class="eyebrow" id="stateEyebrow">Selected View</p>
+            <button id="backToNational" class="back-btn" aria-label="Reset selection to India National Overview" style="display: none;">← All India</button>
+          </div>
+          <h2 id="stateName">All India</h2>
+          <p id="stateSummary">Loading clean energy summary...</p>
+          <div class="big-number" aria-live="polite">
+            <span id="stateTotal">220,096</span>
+            <small id="stateTotalLabel">MW total renewable capacity</small>
+          </div>
+          <div class="mix-bars" id="mixBars">
+            <!-- Dynamic progress bars -->
+          </div>
+        </section>
+
+        <!-- Dynamic Leaderboard Rankings Card -->
+        <section class="rankings-card" aria-labelledby="rankingsTitle">
+          <div class="rankings-header">
+            <p class="eyebrow" id="rankingsTitle">State Rankings</p>
+            <span class="rankings-metric-label" id="rankingsMetricLabel">Total MW</span>
+          </div>
+          <div class="rankings-list" id="rankingsList">
+            <!-- Dynamic rankings list items -->
+          </div>
+        </section>
+
+        <!-- Capacity Trend Sparkline Chart -->
+        <section class="spark-card" aria-labelledby="sparkTitle">
+          <div class="spark-head">
+            <p class="eyebrow" id="sparkTitle">Growth Trend (2017 to 2025)</p>
+            <strong id="growthLabel">+0 MW</strong>
+          </div>
+          <canvas id="sparkline" aria-label="Historical capacity trend sparkline chart"></canvas>
+        </section>
+
+        <!-- Renewable Sources Over Time (stacked area) -->
+        <section class="source-card" aria-labelledby="sourceChartTitle">
+          <div class="spark-head">
+            <p class="eyebrow" id="sourceChartTitle">Sources Over Time · <span id="sourceChartEntity">All India</span></p>
+            <button id="replaySources" class="replay-btn" aria-label="Replay the sources growing animation">↻ Replay</button>
+          </div>
+          <canvas id="sourceChart" aria-label="Stacked area chart of solar, wind, hydro and bio capacity from 2017-18 to 2024-25"></canvas>
+          <div class="source-legend" aria-hidden="true">
+            <span><i style="background:var(--sun)"></i>☀️ Solar</span>
+            <span><i style="background:var(--wind)"></i>💨 Wind</span>
+            <span><i style="background:var(--water)"></i>💧 Hydro</span>
+            <span><i style="background:var(--bio)"></i>🌿 Bio</span>
+          </div>
+          <p class="projection-note" id="sourceChartNote" style="display:none;"></p>
+        </section>
+
+        <!-- National Share Comparison Trend -->
+        <section class="share-card" aria-labelledby="shareTitle">
+          <div class="spark-head">
+            <p class="eyebrow" id="shareTitle">National Renewable Share</p>
+            <strong id="sharePeakLabel">51.3% proj</strong>
+          </div>
+          <canvas id="shareTrend" aria-label="Renewable share of nationwide total power capacity over time chart"></canvas>
+          <p class="projection-note">2025-26 is projected from the official Jan 31, 2026 installed-capacity snapshot.</p>
+        </section>
+
+        <!-- Informational Footer & Sources -->
+        <section class="learn-card">
+          <h3>About this Tracker</h3>
+          <p>Interact with the timeline or map to explore India's clean energy transition. This interface visualizes green power capacity (solar, wind, small hydro, biomass/waste) and compares it with conventional grid sources (coal, lignite, gas, diesel, nuclear) where applicable.</p>
+          <p class="source-note">
+            <strong>Sources:</strong> MNRE, <a href="https://mnre.gov.in/en/renewable-energy-statistics-2024-25/" target="_blank" rel="noreferrer">Renewable Energy Statistics 2024-25</a>.
+            Conventional: CEA/National Power Portal state installed capacity reports (as of 31.03.2025).
+            Share trend: CEA Growth of Electricity Sector 2025; 2025-26 uses MoP capacity up to Jan 31, 2026.
+            <strong>Sources Over Time</strong> &amp; the story tour use the same report's year-wise renewable (RES) figures &mdash; Table 2.1 for all-India and Chapters 11&ndash;15 (Tables 11.2.1&ndash;15.2.1) for the Top 5 states; these RES categories count small hydro and exclude large hydro.
+            Boundaries: <a href="https://github.com/Subhash9325/GeoJson-Data-of-Indian-States" target="_blank" rel="noreferrer">open Indian states GeoJSON</a>.
+            Story-tour photos: real images of Indian solar parks &amp; wind farms from Wikimedia Commons (Bhadla, Mandvi/Kutch, Muppandal, Pavagada) under CC BY / CC BY-SA / ESA Copernicus licenses &mdash; see <a href="images/CREDITS.md" target="_blank" rel="noreferrer">image credits</a>.
+          </p>
+          <p class="boundary-note">Note: The open boundary file uses legacy state geography for J&K/Ladakh and Andhra/Telangana. Data for Telangana and Ladakh are anchored correctly but represented inside legacy boundaries.</p>
+        </section>
+      </aside>
+    </main>
+
+    <!-- Narrated Story Tour overlay (kid-friendly) -->
+    <div id="storyOverlay" class="story-overlay" role="dialog" aria-label="Narrated story tour" hidden>
+      <div class="story-card">
+        <img class="story-photo" id="storyPhoto" alt="" style="display:none;" />
+        <p class="story-photo-credit" id="storyPhotoCredit" style="display:none;"></p>
+        <p class="story-caption" id="storyCaption" aria-live="polite"></p>
+        <div class="story-dots" id="storyDots"></div>
+        <div class="story-controls">
+          <button id="storyPrev" class="story-btn" aria-label="Previous scene">‹ Back</button>
+          <button id="storyPlayPause" class="story-btn primary" aria-label="Pause story">⏸ Pause</button>
+          <button id="storyNext" class="story-btn" aria-label="Next scene">Next ›</button>
+          <button id="storySound" class="story-btn icon" aria-label="Mute narration">🔊</button>
+          <button id="storyExit" class="story-btn icon" aria-label="Exit story tour">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden ARIA announcements for screen readers -->
+    <div id="ariaAnnouncements" class="sr-only" style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;" aria-live="assertive"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
