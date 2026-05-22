@@ -248,12 +248,23 @@ function project([lon, lat], b, w, h) {
   return [zx, zy];
 }
 
+// Coalesce pan/zoom rebuilds to one per animation frame so a fast finger drag
+// doesn't trigger dozens of full reprojections per second.
+let buildQueued = false;
+function requestBuild() {
+  if (buildQueued) return;
+  buildQueued = true;
+  requestAnimationFrame(() => { buildQueued = false; buildPaths(); });
+}
+
 // Build canvas path representations
 function buildPaths() {
   if (!geo) return;
   const r = canvas.getBoundingClientRect();
-  const dpr = devicePixelRatio || 1;
-  
+  // Cap device pixel ratio at 2: phones report 3, which makes the canvas
+  // backing store 9x the pixels and every redraw 9x the fill work.
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+
   canvas.width = r.width*dpr;
   canvas.height = r.height*dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1017,10 +1028,10 @@ canvas.addEventListener("mousemove", (e) => {
       dragMoved = true;
       pan.x = basePan.x + dx;
       pan.y = basePan.y + dy;
-      buildPaths();
+      requestBuild();
     }
   }
-  
+
   // Custom Floating Tooltip Tracking
   hover = pick(e);
   const tooltip = $("mapTooltip");
@@ -1077,32 +1088,77 @@ canvas.addEventListener("click", (e) => {
   }
 });
 
-// Touch Navigation panning equivalents
+// Touch Navigation: one finger pans, two fingers pinch-to-zoom.
+let pinchDist = 0;       // finger spread at pinch start (0 = not pinching)
+let pinchZoom = 1;       // zoom level at pinch start
+const pinchMid = { x: 0, y: 0 };
+
+const fingerSpread = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
 canvas.addEventListener("touchstart", (e) => {
-  if (e.touches.length !== 1) return;
-  isDragging = true;
-  dragMoved = false;
-  startDrag.x = e.touches[0].clientX;
-  startDrag.y = e.touches[0].clientY;
-  basePan.x = pan.x;
-  basePan.y = pan.y;
-}, { passive: true });
+  if (e.touches.length === 1) {
+    isDragging = true;
+    dragMoved = false;
+    pinchDist = 0;
+    startDrag.x = e.touches[0].clientX;
+    startDrag.y = e.touches[0].clientY;
+    basePan.x = pan.x;
+    basePan.y = pan.y;
+  } else if (e.touches.length === 2) {
+    isDragging = false;
+    dragMoved = true;            // suppress the tap-select after a pinch
+    pinchDist = fingerSpread(e.touches);
+    pinchZoom = zoom;
+    basePan.x = pan.x;
+    basePan.y = pan.y;
+    const r = canvas.getBoundingClientRect();
+    pinchMid.x = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left;
+    pinchMid.y = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+  }
+}, { passive: false });
 
 canvas.addEventListener("touchmove", (e) => {
-  if (!isDragging || e.touches.length !== 1) return;
-  const dx = e.touches[0].clientX - startDrag.x;
-  const dy = e.touches[0].clientY - startDrag.y;
-  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-    dragMoved = true;
-    pan.x = basePan.x + dx;
-    pan.y = basePan.y + dy;
-    buildPaths();
+  // Two-finger pinch: zoom around the midpoint between the fingers.
+  if (e.touches.length === 2 && pinchDist > 0) {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    const cx = r.width / 2, cy = r.height / 2;
+    const next = Math.max(1, Math.min(8, pinchZoom * (fingerSpread(e.touches) / pinchDist)));
+    pan.x = pinchMid.x - cx - (pinchMid.x - cx - basePan.x) * (next / pinchZoom);
+    pan.y = pinchMid.y - cy - (pinchMid.y - cy - basePan.y) * (next / pinchZoom);
+    zoom = next;
+    if (zoom === 1) { pan.x = 0; pan.y = 0; }
+    requestBuild();
+    return;
   }
-}, { passive: true });
+  // One-finger pan.
+  if (isDragging && e.touches.length === 1) {
+    const dx = e.touches[0].clientX - startDrag.x;
+    const dy = e.touches[0].clientY - startDrag.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      e.preventDefault();
+      dragMoved = true;
+      pan.x = basePan.x + dx;
+      pan.y = basePan.y + dy;
+      requestBuild();
+    }
+  }
+}, { passive: false });
 
-canvas.addEventListener("touchend", () => {
-  isDragging = false;
-});
+canvas.addEventListener("touchend", (e) => {
+  if (e.touches.length === 0) {
+    isDragging = false;
+    pinchDist = 0;
+  } else if (e.touches.length === 1) {
+    // Lifted one finger of a pinch: resume single-finger panning from here.
+    pinchDist = 0;
+    isDragging = true;
+    startDrag.x = e.touches[0].clientX;
+    startDrag.y = e.touches[0].clientY;
+    basePan.x = pan.x;
+    basePan.y = pan.y;
+  }
+}, { passive: false });
 
 // Scroll to Zoom at cursor position
 canvas.addEventListener("wheel", (e) => {
@@ -1129,7 +1185,7 @@ canvas.addEventListener("wheel", (e) => {
       pan.x = 0;
       pan.y = 0;
     }
-    buildPaths();
+    requestBuild();
   }
 }, { passive: false });
 
