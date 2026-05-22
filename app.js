@@ -339,54 +339,6 @@ function draw() {
   });
 
   updateLegend();
-  drawBeacons(r.width, r.height);
-}
-
-// Draw dynamic pulsing beacon targets for small or focal states
-function drawBeacons(w, h) {
-  const b = bounds(geo.features);
-  const pts = [
-    ["Rajasthan",74.2,26.8],
-    ["Gujarat",71.2,22.7],
-    ["Maharashtra",75.7,19.4],
-    ["Karnataka",76.2,14.7],
-    ["Tamil Nadu",78.7,11],
-    ["Telangana",79,17.8],
-    ["Ladakh",77.6,34.2]
-  ];
-  const isDark = document.body.classList.contains("dark");
-
-  pts.forEach(([s,lon,lat]) => {
-    const ratio = shareMetric(s);
-    if (ratio == null || ratio <= 0) return; // grey years: no beacons
-    const [x,y] = project([lon,lat], b, w, h);
-
-    const rad = 5 + ratio * 20;
-    const isSelected = s === selected;
-    const isHovered = s === hover;
-    
-    // Glowing ring pulse overlay
-    if (isSelected || isHovered) {
-      ctx.beginPath();
-      ctx.arc(x, y, rad + 4, 0, Math.PI*2);
-      ctx.strokeStyle = isSelected 
-        ? (isDark ? "rgba(60, 208, 112, 0.45)" : "rgba(47, 122, 90, 0.4)") 
-        : "rgba(221, 168, 58, 0.4)";
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-    
-    ctx.beginPath();
-    ctx.arc(x, y, rad, 0, Math.PI*2);
-    ctx.fillStyle = isSelected 
-      ? (isDark ? "#3cd070" : "#18322a") 
-      : (isDark ? "rgba(20, 28, 25, 0.9)" : "rgba(255, 250, 240, 0.85)");
-    ctx.fill();
-    
-    ctx.lineWidth = 2.5;
-    ctx.strokeStyle = colorShare(ratio, s);
-    ctx.stroke();
-  });
 }
 
 // Click point-in-path picker
