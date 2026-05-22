@@ -118,6 +118,11 @@ const STATE_CENTROIDS = {
 
 const $ = (id) => document.getElementById(id);
 
+// On phones we drop the canvas map entirely (CSS hides .map-wrap) and lean on
+// the leaderboard + charts. Gate the map build and story tour off to match, so
+// we don't burn CPU rasterizing a map nobody can see.
+const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
+
 // Canvas and Rendering Contexts
 const canvas = $("indiaMap");
 const ctx = canvas.getContext("2d");
@@ -135,7 +140,6 @@ let year = 7;
 let selected = null; // null = National Overview
 let hover = null;
 let mode = "total";
-let timer = null;
 
 // Zoom and Pan Camera Engine
 let zoom = 1;
@@ -839,9 +843,7 @@ function selectState(stateName) {
 // Update year timeline position
 function setYear(i) {
   year = Number(i);
-  $("yearSlider").value = year;
-  $("yearLabel").textContent = YEARS[year];
-  
+
   const natSum = Object.keys(CAPACITY).reduce((sum,s) => sum + total(s,year), 0);
   $("nationalTotal").textContent = fmt(natSum);
   $("nationalTotalLabel").textContent = `MW in ${YEARS[year]}`;
@@ -856,8 +858,7 @@ function setYear(i) {
 // Update active map metric mode
 function setMode(next) {
   mode = next;
-  $("modeLabel").textContent = MODE[mode][0];
-  
+
   document.querySelectorAll(".mode-tab").forEach((b) => {
     const isActive = b.dataset.mode === mode;
     b.classList.toggle("active", isActive);
@@ -1238,23 +1239,7 @@ themeToggle.addEventListener("click", () => {
 });
 
 
-// --- Slider and Tab Trigger Events ---
-$("yearSlider").addEventListener("input", (e) => setYear(e.target.value));
-
-$("playButton").addEventListener("click", () => {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-    $("playButton").textContent = "▶";
-    $("playButton").setAttribute("aria-label", "Play timeline animation");
-    announce("Timeline animation paused.");
-    return;
-  }
-  $("playButton").textContent = "Ⅱ";
-  $("playButton").setAttribute("aria-label", "Pause timeline animation");
-  timer = setInterval(() => setYear((year + 1) % YEARS.length), 1300);
-});
-
+// --- Tab Trigger Events ---
 document.querySelectorAll(".mode-tab").forEach((b) => {
   b.addEventListener("click", () => setMode(b.dataset.mode));
 });
@@ -1264,7 +1249,9 @@ $("backToNational").addEventListener("click", () => {
 });
 
 addEventListener("resize", () => {
-  if (geo) buildPaths();
+  // Build the map only when it's actually visible (desktop). Crossing the
+  // breakpoint from mobile -> desktop rebuilds it here.
+  if (geo && !isMobile()) buildPaths();
   updatePanel();
   drawShareTrend();
 });
@@ -1460,9 +1447,7 @@ const STORY = [
   { photo: "muppandal", audio: "renewaudio/renew-8.m4a", caption: "Tamil Nadu is India's wind champion! Tall white turbines spin in the wind to make electricity.", hold: 3400,
     run: async () => { selectState("Tamil Nadu"); await flyTo("Tamil Nadu", 3.4, 1000); await growSources("Tamil Nadu", 1500); } },
   { photo: "pavagada", audio: "renewaudio/renew-9.m4a", caption: "Karnataka built one of the world's biggest solar parks: Pavagada is so huge you can spot it from space! Maharashtra joined in too.", hold: 4200,
-    run: async () => { selectState("Karnataka"); await flyTo("Karnataka", 3.4, 900); await growSources("Karnataka", 1400); } },
-  { photo: "windfield", audio: "renewaudio/renew-10.m4a", caption: "Together, all of India now makes enough clean energy to be a real clean-power superhero! Now it's your turn — go explore the map!", hold: 5400,
-    run: async () => { selectState(null); setMode("total"); await flyTo("India", 1, 1000); await growSources("India", 1600); } }
+    run: async () => { selectState("Karnataka"); await flyTo("Karnataka", 3.4, 900); await growSources("Karnataka", 1400); } }
 ];
 
 let tourPlaying = false;
@@ -1662,13 +1647,14 @@ fetch("data/india-states-lite.geojson")
   .then((r) => r.json())
   .then((j) => {
     geo = j;
-    buildPaths();
+    if (!isMobile()) buildPaths();
     setYear(year);
     setMode(mode);
     updatePanel();
     drawShareTrend();
     // Shareable deep-link: index.html?story auto-starts the narrated tour
-    if (/[?&]story\b/.test(location.search)) startTour();
+    // (skipped on phones, where the map-driven tour isn't shown)
+    if (!isMobile() && /[?&]story\b/.test(location.search)) startTour();
   })
   .catch((err) => {
     console.error("Error loading geojson boundary map data:", err);

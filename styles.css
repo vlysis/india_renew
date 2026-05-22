@@ -363,23 +363,6 @@ body.dark .map-legend i {
   border-color: rgba(255,255,255,0.05);
 }
 
-/* Timeline Components */
-.timeline-card {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: 44px minmax(130px, auto) minmax(140px, 1fr);
-  align-items: center;
-  gap: 16px;
-  margin: 0 28px 24px;
-  padding: 14px 18px;
-  border: 1px solid var(--line-solid);
-  border-radius: 14px;
-  background: var(--bg-card);
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition);
-}
-
 .icon-button {
   width: 44px;
   height: 44px;
@@ -836,25 +819,28 @@ input[type="range"] {
     gap: 16px;
   }
   .map-stage {
-    min-height: 64vh;
+    min-height: 0;
+    /* Only the topbar (eyebrow + story button + theme toggle) remains on
+       phones once .map-wrap is hidden — collapse to a single row. */
+    grid-template-rows: auto;
+    padding-bottom: 18px;
     border-radius: 16px;
   }
   .topbar {
-    padding: 18px 20px 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px;
   }
   .stat-pill {
     display: none;
   }
-  .map-wrap, #indiaMap {
-    min-height: 400px;
-  }
-  .timeline-card {
-    grid-template-columns: 44px 1fr;
-    margin: 0 16px 16px;
-    padding: 10px 14px;
-  }
-  .timeline-card input {
-    grid-column: 1 / -1;
+  /* Drop the canvas map on phones: the leaderboard + charts carry the
+     experience, and skipping the canvas avoids its redraw cost. The map
+     build is gated off in JS to match. The story tour still works here —
+     it plays in a full-screen overlay (photos + captions + narration). */
+  .map-wrap {
+    display: none;
   }
   .inspector {
     overflow-y: visible;
@@ -868,14 +854,14 @@ input[type="range"] {
 .story-launch-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 10px 16px;
+  gap: 9px;
+  padding: 15px 26px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 14px;
   background: linear-gradient(135deg, var(--leaf), var(--sun));
   color: #fff;
   font-weight: 850;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 0 6px 18px rgba(var(--leaf-rgb), 0.35);
@@ -1068,8 +1054,8 @@ body.touring .map-stage {
 
 @media (max-width: 560px) {
   .story-launch-btn {
-    padding: 8px 11px;
-    font-size: 0.78rem;
+    padding: 13px 22px;
+    font-size: 1rem;
   }
   .story-overlay {
     padding: 14px;
@@ -1091,8 +1077,5 @@ body.touring .map-stage {
   }
   .mix-row {
     grid-template-columns: 60px 1fr 64px;
-  }
-  .timeline-card {
-    gap: 10px;
   }
 }
