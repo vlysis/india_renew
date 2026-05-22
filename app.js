@@ -281,36 +281,53 @@ function color(v, max, state) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// Map legend reflects the share metric (and that it's a 2024-25-only view)
+function updateLegend() {
+  const low = $("legendLow"), high = $("legendHigh");
+  if (!low || !high) return;
+  if (year !== 7) {
+    low.textContent = "Share shown for 2024-25 only";
+    high.textContent = "← drag slider to 2024-25";
+    return;
+  }
+  const label = mode === "total" ? "renewable" : mode;
+  low.textContent = `Less ${label}`;
+  high.textContent = `More ${label}`;
+}
+
 // Drawing routine
 function draw() {
   if (!canvas.width || !canvas.height) return;
   const r = canvas.getBoundingClientRect();
-  const max = maxMetric();
-  
+
   ctx.clearRect(0, 0, r.width, r.height);
-  
+
   // Glassy background tint
   const isDark = document.body.classList.contains("dark");
   ctx.fillStyle = isDark ? "rgba(20, 28, 25, 0.42)" : "rgba(255, 250, 240, 0.42)";
   ctx.fillRect(0, 0, r.width, r.height);
-  
+
+  // Neutral fill for states whose share is unknown (any year other than 2024-25)
+  const greyFill = isDark ? "rgba(150, 162, 156, 0.14)" : "rgba(120, 120, 108, 0.13)";
+
   paths.forEach(({path,state}) => {
-    const val = metric(state);
-    ctx.fillStyle = color(val, max, state);
-    
+    const ratio = shareMetric(state);
+    ctx.fillStyle = ratio == null ? greyFill : colorShare(ratio, state);
+
     const isSelected = state === selected;
     const isHovered = state === hover;
-    
-    ctx.strokeStyle = isSelected || isHovered 
-      ? (isDark ? "#3cd070" : "#18322a") 
+
+    ctx.strokeStyle = isSelected || isHovered
+      ? (isDark ? "#3cd070" : "#18322a")
       : (isDark ? "rgba(60, 208, 112, 0.16)" : "rgba(66,76,55,0.22)");
-      
+
     ctx.lineWidth = isSelected ? 2.5 : isHovered ? 1.5 : 0.75;
-    
+
     ctx.fill(path);
     ctx.stroke(path);
   });
-  
+
+  updateLegend();
   drawBeacons(r.width, r.height);
 }
 
@@ -326,15 +343,14 @@ function drawBeacons(w, h) {
     ["Telangana",79,17.8],
     ["Ladakh",77.6,34.2]
   ];
-  const max = maxMetric();
   const isDark = document.body.classList.contains("dark");
-  
+
   pts.forEach(([s,lon,lat]) => {
+    const ratio = shareMetric(s);
+    if (ratio == null || ratio <= 0) return; // grey years: no beacons
     const [x,y] = project([lon,lat], b, w, h);
-    const val = metric(s);
-    if (val === 0) return;
-    
-    const rad = 5 + Math.sqrt(val/max)*18;
+
+    const rad = 5 + ratio * 20;
     const isSelected = s === selected;
     const isHovered = s === hover;
     
@@ -357,7 +373,7 @@ function drawBeacons(w, h) {
     ctx.fill();
     
     ctx.lineWidth = 2.5;
-    ctx.strokeStyle = color(val, max, s);
+    ctx.strokeStyle = colorShare(ratio, s);
     ctx.stroke();
   });
 }
@@ -1013,14 +1029,16 @@ canvas.addEventListener("mousemove", (e) => {
     const x = e.clientX - r.left;
     const y = e.clientY - r.top;
     
-    // Sort states descending by selected metric to compute dynamic rank
-    const stateList = Object.keys(CAPACITY);
-    stateList.sort((a, b) => metric(b) - metric(a));
-    const rank = stateList.indexOf(hover) + 1;
-    
+    const ratio = shareMetric(hover);
     $("tooltipState").textContent = hover;
-    $("tooltipValue").textContent = `${fmt(metric(hover))} MW`;
-    $("tooltipRank").textContent = `#${rank} Rank`;
+    if (ratio != null) {
+      const label = mode === "total" ? "renewable" : mode;
+      $("tooltipValue").textContent = `${Math.round(ratio * 100)}% ${label}`;
+      $("tooltipRank").textContent = `${fmt(metric(hover))} MW`;
+    } else {
+      $("tooltipValue").textContent = `${fmt(total(hover, year))} MW`;
+      $("tooltipRank").textContent = `renewable · ${YEARS[year]}`;
+    }
     
     tooltip.style.opacity = "1";
     tooltip.style.transform = `translate(${x + 15}px, ${y + 15}px)`;
@@ -1413,26 +1431,29 @@ const STATE_PHOTOS = {
   "Maharashtra": "maharashtra"
 };
 
+// Each scene maps to a recorded narration clip in renewaudio/ (renew-1..renew-10).
+// `hold` is now only the fallback timer used when the clip can't play (missing
+// file or autoplay blocked); normally a scene advances when its audio ends.
 const STORY = [
-  { photo: "bhadla", caption: "Welcome! Let's discover how India makes clean energy from sunshine, wind and water!", hold: 3800,
+  { photo: "bhadla", audio: "renewaudio/renew-1.m4a", caption: "Hello! Through this website you will find out how India makes clean energy from the sun, wind and water!", hold: 3800,
     run: async () => { setMode("total"); selectState(null); await flyTo("India", 1, 700); } },
-  { caption: "Let's travel back to the year 2017. India is just getting started with clean power...", hold: 2600,
+  { audio: "renewaudio/renew-2.m4a", caption: "Let's go back to the year 2017. India is just getting started with clean power, also known as renewable energy.", hold: 2600,
     run: async () => { await sweepYears(year, 0, 500); } },
-  { caption: "Now watch the whole map turn greener as the years zoom by — more clean energy every single year!", hold: 1000,
+  { audio: "renewaudio/renew-3.m4a", caption: "Now watch the whole map turn greener as the years pass by (by people adding more solar panels and wind turbines): more clean energy every year!", hold: 1000,
     run: async () => { await sweepYears(0, 7, 5200); } },
-  { caption: "WOW! India's clean energy grew almost 2 times bigger. Let's meet the states that helped the most!", hold: 3600,
+  { audio: "renewaudio/renew-4.m4a", caption: "India's clean energy has grown almost 2 times bigger. Let's see the states that made some of the largest contributions...", hold: 3600,
     run: async () => {} },
-  { photo: "bhadla", caption: "First stop: Rajasthan — India's giant desert state, with sunshine almost every day.", hold: 2800,
+  { photo: "bhadla", audio: "renewaudio/renew-5.m4a", caption: "First stop: Rajasthan... India's giant desert state, with sunshine almost every day.", hold: 2800,
     run: async () => { selectState("Rajasthan"); await flyTo("Rajasthan", 3.4, 1000); } },
-  { photo: "bhadla", caption: "Rajasthan covered its deserts with shiny solar panels. Solar power grew about 11 times — from 2,400 to over 28,000 MW!", hold: 4200,
+  { photo: "bhadla", audio: "renewaudio/renew-6.m4a", caption: "Rajasthan covered its deserts with solar panels. Solar power grew about 11 times: from 2,400 to over 28,000 MW!", hold: 4200,
     run: async () => { await growSources("Rajasthan", 1800); } },
-  { photo: "gujarat", caption: "Next: Gujarat, right by the sea. It catches BOTH sunshine and the salty sea breeze!", hold: 3400,
+  { photo: "gujarat", audio: "renewaudio/renew-7.m4a", caption: "Next: Gujarat, right by the sea. It catches both sunshine and the salty sea breeze!", hold: 3400,
     run: async () => { selectState("Gujarat"); await flyTo("Gujarat", 3.4, 1000); await growSources("Gujarat", 1500); } },
-  { photo: "muppandal", caption: "Tamil Nadu is India's WIND champion! Tall white turbines spin in the wind to make electricity.", hold: 3400,
+  { photo: "muppandal", audio: "renewaudio/renew-8.m4a", caption: "Tamil Nadu is India's wind champion! Tall white turbines spin in the wind to make electricity.", hold: 3400,
     run: async () => { selectState("Tamil Nadu"); await flyTo("Tamil Nadu", 3.4, 1000); await growSources("Tamil Nadu", 1500); } },
-  { photo: "pavagada", caption: "Karnataka built one of the world's BIGGEST solar parks — Pavagada is so huge you can spot it from space! Maharashtra joined in too.", hold: 4200,
+  { photo: "pavagada", audio: "renewaudio/renew-9.m4a", caption: "Karnataka built one of the world's biggest solar parks: Pavagada is so huge you can spot it from space! Maharashtra joined in too.", hold: 4200,
     run: async () => { selectState("Karnataka"); await flyTo("Karnataka", 3.4, 900); await growSources("Karnataka", 1400); } },
-  { photo: "windfield", caption: "Together, all of India now makes enough clean energy to be a real clean-power superhero! Now it's your turn — go explore the map!", hold: 5400,
+  { photo: "windfield", audio: "renewaudio/renew-10.m4a", caption: "Together, all of India now makes enough clean energy to be a real clean-power superhero! Now it's your turn — go explore the map!", hold: 5400,
     run: async () => { selectState(null); setMode("total"); await flyTo("India", 1, 1000); await growSources("India", 1600); } }
 ];
 
@@ -1440,14 +1461,61 @@ let tourPlaying = false;
 let tourSpeak = true;
 let autoTimer = null;
 let sceneIdx = -1;
+let sceneAudioDriven = false; // true while the current scene is timed by its clip
 
-function speak(text) {
-  if (!tourSpeak || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const clean = text.replace(/[^\w\s.,!?'%-]/gu, "").trim();
-  const u = new SpeechSynthesisUtterance(clean);
-  u.rate = 0.96; u.pitch = 1.15;
-  window.speechSynthesis.speak(u);
+// --- Recorded narration playback ---
+// One preloaded <audio> per scene (built lazily) keyed by the clip src so the
+// next scene's clip is ready and there's no gap. `currentAudio` is the clip for
+// the scene on screen right now.
+const narrationCache = {};
+let currentAudio = null;
+
+function audioFor(src) {
+  if (!narrationCache[src]) {
+    const a = new Audio(src);
+    a.preload = "auto";
+    narrationCache[src] = a;
+  }
+  return narrationCache[src];
+}
+
+// Start a scene's narration. Returns true if playback actually began (so the
+// caller can wait for it to end); false if there's no clip, it's missing, or
+// autoplay was blocked (caller then falls back to the scene's `hold` timer).
+function playNarration(sc) {
+  if (currentAudio) { currentAudio.pause(); }
+  currentAudio = null;
+  if (!sc.audio) return Promise.resolve(false);
+  const a = audioFor(sc.audio);
+  currentAudio = a;
+  a.muted = !tourSpeak;        // play (muted) even when sound is off, so timing matches
+  a.currentTime = 0;
+  return a.play().then(() => true).catch(() => false);
+}
+
+// Resolve when the current clip finishes (or right away if it's not playing).
+// `gen` guards against the user navigating to another scene mid-wait.
+function waitForNarrationEnd(gen) {
+  return new Promise((resolve) => {
+    const a = currentAudio;
+    if (!a || a.ended) { resolve(); return; }
+    const done = () => {
+      a.removeEventListener("ended", done);
+      a.removeEventListener("error", done);
+      resolve();
+    };
+    a.addEventListener("ended", done);
+    a.addEventListener("error", done);
+    // safety: if we left this scene, stop waiting
+    const guard = setInterval(() => {
+      if (gen !== sceneGen) { clearInterval(guard); done(); }
+    }, 200);
+    a.addEventListener("ended", () => clearInterval(guard), { once: true });
+  });
+}
+
+function stopNarration() {
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
 }
 
 function renderDots() {
@@ -1483,21 +1551,33 @@ async function runScene(i) {
   }
   renderDots();
   announce(sc.caption);
-  speak(sc.caption);
   const myGen = sceneGen;
+  const started = await playNarration(sc);
+  sceneAudioDriven = started;
   await sc.run();
   if (myGen !== sceneGen) return; // navigated away mid-scene
-  if (tourPlaying) {
-    autoTimer = setTimeout(() => {
-      if (sceneIdx + 1 < STORY.length) runScene(sceneIdx + 1);
-      else endTour();
-    }, sc.hold || 3200);
+
+  const advance = () => {
+    if (myGen !== sceneGen) return;
+    if (sceneIdx + 1 < STORY.length) runScene(sceneIdx + 1);
+    else endTour();
+  };
+
+  if (!tourPlaying) return;
+  if (started) {
+    // Narration is playing: advance once it finishes (plus a short gap).
+    await waitForNarrationEnd(myGen);
+    if (myGen !== sceneGen || !tourPlaying) return;
+    autoTimer = setTimeout(advance, 600);
+  } else {
+    // No clip / missing file / autoplay blocked: fall back to the timed hold.
+    autoTimer = setTimeout(advance, sc.hold || 3200);
   }
 }
 
 function goScene(i) {
   if (i < 0 || i >= STORY.length) return;
-  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  stopNarration();
   runScene(i);
 }
 
@@ -1507,16 +1587,23 @@ function setTourPlaying(on) {
   if (btn) { btn.textContent = on ? "⏸ Pause" : "▶ Play"; btn.setAttribute("aria-label", on ? "Pause story" : "Play story"); }
   if (!on) {
     clearTimeout(autoTimer);
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (currentAudio) currentAudio.pause();
   } else if (sceneIdx >= 0) {
-    autoTimer = setTimeout(() => {
-      if (sceneIdx + 1 < STORY.length) runScene(sceneIdx + 1); else endTour();
-    }, 1200);
+    if (sceneAudioDriven && currentAudio && !currentAudio.ended) {
+      // Resume the clip; the scene's pending end-wait will advance on its own.
+      currentAudio.muted = !tourSpeak;
+      currentAudio.play().catch(() => {});
+    } else {
+      autoTimer = setTimeout(() => {
+        if (sceneIdx + 1 < STORY.length) runScene(sceneIdx + 1); else endTour();
+      }, 1200);
+    }
   }
 }
 
 function startTour() {
   Object.values(PHOTOS).forEach((p) => { const im = new Image(); im.src = p.src; });
+  STORY.forEach((sc) => { if (sc.audio) audioFor(sc.audio); }); // warm the narration cache
   $("storyOverlay").hidden = false;
   document.body.classList.add("touring");
   setTourPlaying(true);
@@ -1525,6 +1612,8 @@ function startTour() {
 
 function endTour() {
   setTourPlaying(false);
+  stopNarration();
+  currentAudio = null;
   sceneGen++;
   sceneIdx = -1;
   $("storyOverlay").hidden = true;
@@ -1546,7 +1635,8 @@ $("storySound").addEventListener("click", () => {
   const b = $("storySound");
   b.textContent = tourSpeak ? "🔊" : "🔇";
   b.setAttribute("aria-label", tourSpeak ? "Mute narration" : "Unmute narration");
-  if (!tourSpeak && window.speechSynthesis) window.speechSynthesis.cancel();
+  // Clip keeps progressing so scene timing is unchanged; just toggle audibility.
+  if (currentAudio) currentAudio.muted = !tourSpeak;
 });
 $("replaySources").addEventListener("click", () => { sceneGen++; growSources(sourceEntity, 1600); });
 document.addEventListener("keydown", (e) => {
