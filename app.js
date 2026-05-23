@@ -62,20 +62,49 @@ const MIX = {
   "Dadra & Nagar Haveli and Daman & Diu":[48.12,0,0,3.75],"Tripura":[21.24,0,16.01,0],
   "Andaman & Nicobar Islands":[29.91,0,5.25,0],"Lakshadweep":[4.97,0,0,0]
 };
-const CONVENTIONAL = {
-  "Andaman & Nicobar Islands":[0,0,0,92.71,0],"Andhra Pradesh":[13190,0,4678.54,36.80,0],
-  "Arunachal Pradesh":[0,0,0,0,0],"Assam":[750,0,597.35,0,0],"Bihar":[9060,0,0,0,0],
-  "Chandigarh":[0,0,0,0,0],"Chhattisgarh":[23493,0,0,0,0],"Dadra & Nagar Haveli and Daman & Diu":[0,0,0,0,0],
-  "Delhi":[0,0,2208.40,0,0],"Goa":[0,0,0,0,0],"Gujarat":[14692,1400,6580.31,0,1840],
-  "Haryana":[5330,0,431.59,0,0],"Himachal Pradesh":[0,0,0,0,0],"Jammu & Kashmir":[0,0,175,0,0],
-  "Jharkhand":[5570,0,0,0,0],"Karnataka":[9480,0,370.05,25.20,880],"Kerala":[0,0,533.58,159.96,0],
-  "Ladakh":[0,0,0,0,0],"Lakshadweep":[0,0,0,26.83,0],"Madhya Pradesh":[21170,0,0,0,0],
-  "Maharashtra":[23316.01,0,2819.08,0,1400],"Manipur":[0,0,0,36,0],"Meghalaya":[0,0,0,0,0],
-  "Mizoram":[0,0,0,0,0],"Nagaland":[0,0,0,0,0],"Odisha":[9600,0,0,0,0],
-  "Puducherry":[0,0,32.50,0,0],"Punjab":[5680,0,0,0,0],"Rajasthan":[9200,1580,1022.83,0,1180],
-  "Sikkim":[0,0,0,0,0],"Tamil Nadu":[10522.50,3640,1027.18,211.70,2440],"Telangana":[10242.50,0,0,0,0],
-  "Tripura":[0,0,1067.60,0,0],"Uttar Pradesh":[28035,0,1493.14,0,440],"Uttarakhand":[0,0,664,0,0],
-  "West Bengal":[13487,0,80,0,0]
+// Year-wise state conventional capacity [coal, lignite, gas, diesel, nuclear] (MW),
+// one entry per YEARS index (2017-18..2024-25). Source: CEA "Installed Capacity of
+// Power Stations (incl. allocated shares in joint & central sector)" reports, as on
+// 31.03 each FY (allocation-wise; excludes NLC/DVC/central-unallocated; Ladakh folded
+// into J&K; the 2017-18 report has no separate lignite column, so lignite sits in coal
+// for that year). Regenerate with: node scripts/build-conventional-history.mjs
+const CONVENTIONAL_HISTORY = {
+  "Andaman & Nicobar Islands":[[0,0,0,40.05,0],[0,0,0,40.05,0],[0,0,0,40.05,0],[0,0,0,40.05,0],[0,0,0,40.05,0],[0,0,0,92.71,0],[0,0,0,92.71,0],[0,0,0,92.71,0]],
+  "Andhra Pradesh":[[10558.44,0,3929.52,36.8,127.27],[10430.71,127.73,4048.58,36.8,127.27],[10430.71,153.98,4066.72,36.8,127.27],[10430.71,180.23,4066.72,36.8,127.27],[10430.71,180.23,4066.72,36.8,127.27],[11230.92,180.23,4066.72,36.8,127.27],[12030.83,189.34,4066.72,36.8,127.27],[12030.83,189.34,3846.72,36.8,127.27]],
+  "Arunachal Pradesh":[[24.7,0,46.82,0,0],[37.05,0,46.82,0,0],[37.05,0,46.82,0,0],[37.05,0,46.82,0,0],[37.05,0,46.82,0,0],[37.05,0,46.82,0,0],[37.05,0,46.82,0,0],[37.05,0,46.82,0,0]],
+  "Assam":[[279.02,0,748.51,0,0],[408.52,0,788.27,0,0],[403.5,0,788.27,0,0],[403.5,0,789.42,0,0],[402.52,0,764.92,0,0],[402.52,0,741.92,0,0],[581.52,0,741.92,0,0],[874.52,0,741.92,0,0]],
+  "Bihar":[[3905.33,0,0,0,0],[4130.33,0,0,0,0],[5338.39,0,0,0,0],[5855.89,0,0,0,0],[6825.71,0,0,0,0],[7055.06,0,0,0,0],[6953.75,0,0,0,0],[7283.11,0,0,0,0]],
+  "Chandigarh":[[38.15,0,15.03,0,8.01],[38.15,0,15.03,0,8.01],[40.74,0,15.03,0,8.01],[44.83,0,15.03,0,8.01],[44.83,0,15.03,0,8.01],[44.83,0,15.03,0,8.01],[44.83,0,15.03,0,8.01],[44.83,0,15.03,0,8.01]],
+  "Chhattisgarh":[[12723.44,0,0,0,48],[13240.75,0,0,0,48],[12009.05,0,0,0,48],[12221.89,0,0,0,48],[12221.89,0,0,0,48],[12221.85,0,0,0,48],[12221.85,0,0,0,135.57],[12221.85,0,0,0,135.57]],
+  "Dadra & Nagar Haveli and Daman & Diu":[[301.07,0,109.68,0,16],[337.01,0,109.68,0,16],[565.91,0,109.68,0,16],[592.73,0,109.68,0,16],[587.18,0,109.68,0,16],[587.04,0,109.68,0,16],[587.05,0,109.68,0,29.22],[587.07,0,109.68,0,29.22]],
+  "Delhi":[[4821.94,0,2115.41,0,102.83],[4116.94,0,2115.41,0,102.83],[4406.35,0,2115.41,0,102.83],[4403.56,0,2115.41,0,102.83],[4405.51,0,2115.41,0,102.83],[3649.5,0,2115.41,0,102.83],[3649.5,0,2115.41,0,102.83],[3649.49,0,2115.41,0,102.83]],
+  "Goa":[[454.78,0,67.67,0,26],[469.59,0,67.67,0,26],[481.33,0,67.67,0,26],[492.27,0,67.67,0,26],[492.27,0,67.67,0,26],[492.29,0,67.67,0,26],[492.29,0,67.67,0,41.68],[492.29,0,67.67,0,41.68]],
+  "Gujarat":[[15606.18,0,6561.82,0,559],[14218.1,1540,6561.82,0,559],[15142.62,1540,6586.82,0,559],[15422.96,1400,6586.82,0,559],[16302.27,1400,6586.82,0,559],[17159.14,1400,6586.82,0,559],[17159.14,1400,6586.82,0,1034.89],[17159.11,1400,5931.82,0,1034.89]],
+  "Haryana":[[8095.5,0,685.61,0,100.94],[8095.5,0,685.61,0,100.94],[8660.57,0,685.61,0,100.94],[8682.61,0,685.61,0,100.94],[8636.58,0,685.61,0,100.94],[8638.39,0,581.59,0,100.94],[8638.39,0,581.59,0,100.94],[8638.38,0,581.59,0,100.94]],
+  "Himachal Pradesh":[[183.4,0,62.01,0,28.95],[183.4,0,62.01,0,28.95],[151.69,0,62.01,0,28.95],[151.69,0,62.01,0,28.95],[151.69,0,62.01,0,28.95],[144.67,0,0,0,28.95],[144.67,0,0,0,28.95],[144.67,0,0,0,28.95]],
+  "Jammu & Kashmir":[[506.39,0,304.07,0,67.98],[506.39,0,304.07,0,67.98],[523.42,0,304.07,0,67.98],[577.14,0,304.07,0,67.98],[577.14,0,304.07,0,67.98],[577.14,0,304.07,0,67.98],[870.13,0,304.07,0,67.98],[577.14,0,304.07,0,67.98]],
+  "Jharkhand":[[1543.74,0,0,0,0],[1543.74,0,0,0,0],[2276.46,0,0,0,0],[2296.46,0,0,0,0],[2446.5,0,0,0,0],[2361.25,0,0,0,0],[2607.31,0,0,0,0],[2607.31,0,0,0,0]],
+  "Karnataka":[[9807.7,0,0,153.12,698],[9406.3,401.4,0,153.12,698],[9846.3,436.65,0,25.2,698],[9846.3,471.9,0,25.2,698],[9846.3,471.9,0,25.2,698],[9947.56,471.9,0,25.2,698],[10250.16,486.42,0,25.2,698],[9947.8,486.42,370.05,25.2,698]],
+  "Kerala":[[1758.22,0,533.58,159.96,362],[1476.42,281.8,533.58,159.96,362],[2058.92,298,533.58,159.96,362],[2058.92,314.2,533.58,159.96,362],[2058.92,314.2,533.58,159.96,362],[2059,314.2,533.58,159.96,362],[2058.8,325.33,533.58,159.96,362],[2235.82,325.33,533.58,159.96,362]],
+  "Ladakh":[[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+  "Lakshadweep":[[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,26.83,0],[0,0,0,26.83,0],[0,0,0,26.83,0]],
+  "Madhya Pradesh":[[12448.41,0,357,0,273],[14916.38,0,357,0,273],[15981.38,0,332,0,273],[16455.09,0,332,0,273],[16087.48,0,332,0,273],[15912.54,0,332,0,273],[15962.54,0,332,0,491.98],[15962.59,0,332,0,491.98]],
+  "Maharashtra":[[26960.75,0,3512.73,0,690],[27293.8,0,3512.73,0,690],[26223.82,0,3512.73,0,690],[26364.18,0,3512.73,0,690],[25254.18,0,3512.73,0,690],[25254.24,0,3512.73,0,690],[25404.24,0,3512.73,0,1068.66],[26064.29,0,3512.73,0,1068.66]],
+  "Manipur":[[31.4,0,71.57,36,0],[47.1,0,71.57,36,0],[47.1,0,71.57,36,0],[47.1,0,71.57,36,0],[47.1,0,81.58,36,0],[15.68,0,81.58,36,0],[47.1,0,81.58,36,0],[47.1,0,81.58,36,0]],
+  "Meghalaya":[[30.4,0,109.69,0,0],[45.6,0,109.69,0,0],[50.62,0,109.69,0,0],[50.62,0,109.69,0,0],[51.6,0,109.69,0,0],[0,0,109.69,0,0],[51.6,0,109.69,0,0],[51.6,0,109.69,0,0]],
+  "Mizoram":[[20.7,0,40.46,0,0],[31.05,0,40.46,0,0],[31.05,0,40.46,0,0],[31.05,0,40.46,0,0],[31.05,0,60.46,0,0],[10.35,0,60.46,0,0],[31.05,0,60.46,0,0],[31.05,0,60.46,0,0]],
+  "Nagaland":[[21.4,0,48.93,0,0],[32.1,0,48.93,0,0],[32.1,0,48.93,0,0],[32.1,0,48.93,0,0],[32.1,0,73.93,0,0],[32.1,0,73.93,0,0],[32.1,0,73.93,0,0],[32.1,0,73.93,0,0]],
+  "Odisha":[[4992.9,0,0,0,0],[4992.9,0,0,0,0],[5893.98,0,0,0,0],[5893.98,0,0,0,0],[5027.21,0,0,0,0],[4989.85,0,0,0,0],[5291.21,0,0,0,0],[5351.21,0,0,0,0]],
+  "Puducherry":[[248.4,0,32.5,0,86],[140.8,107.6,32.5,0,86],[140.8,109.7,32.5,0,86],[140.8,111.8,32.5,0,86],[140.8,111.8,32.5,0,86],[140.8,111.8,32.5,0,86],[140.8,118.35,32.5,0,86],[140.8,118.35,32.5,0,86]],
+  "Punjab":[[8590.08,0,414.01,0,196.81],[7730.08,0,414.01,0,196.81],[8327.47,0,414.01,0,196.81],[8351.5,0,414.01,0,196.81],[8315.5,0,414.01,0,196.81],[8214,0,150,0,196.81],[8214,0,150,0,196.81],[8214,0,150,0,196.81]],
+  "Rajasthan":[[10938.25,0,824.9,0,556.74],[10018.25,1580,824.9,0,556.74],[10862.57,1580,824.9,0,556.74],[10939.59,1580,824.9,0,556.74],[11599.59,1580,824.9,0,556.74],[11747.56,1580,774.63,0,556.74],[11868.56,1580,774.63,0,556.74],[12623.7,1580,774.63,0,556.74]],
+  "Sikkim":[[87.03,0,0,0,0],[87.03,0,0,0,0],[102.25,0,0,0,0],[105.65,0,0,0,0],[53.57,0,0,0,0],[11.92,0,0,0,0],[103.54,0,0,0,0],[76.54,0,0,0,0]],
+  "Tamil Nadu":[[13647.19,0,1027.18,411.7,1448],[11932.99,1614.2,1027.18,211.7,1448],[11832.99,1790.75,1027.18,211.7,1448],[11832.99,1767.3,1027.18,211.7,1448],[12357.99,1767.3,1027.18,211.7,1448],[12762.26,1916.57,1027.18,211.7,1448],[12949,1959.16,1027.18,211.7,1448],[12835.49,1959.16,1027.18,211.7,1448]],
+  "Telangana":[[7878.07,0,950.88,0,148.73],[8228.8,149.27,831.82,0,148.73],[8358.8,179.92,831.82,0,148.73],[9168.8,210.57,831.82,0,148.73],[9438.8,210.57,831.82,0,148.73],[9438.8,61.3,831.82,0,148.73],[10798.8,61.3,831.82,0,148.73],[11598.8,61.3,831.82,0,148.73]],
+  "Tripura":[[37.4,0,606.45,0,0],[56.1,0,606.45,0,0],[56.1,0,606.45,0,0],[56.1,0,573.95,0,0],[56.1,0,518.94,0,0],[0,0,486.94,0,0],[56,0,486.94,0,0],[56,0,486.94,0,0]],
+  "Uttar Pradesh":[[18073.72,0,549.49,0,289.48],[17979.72,0,549.49,0,289.48],[18690.29,0,549.49,0,289.48],[19753.84,0,549.49,0,289.48],[20483.54,0,549.49,0,289.48],[20387.75,0,1029.51,0,289.48],[21487.75,0,1029.51,0,289.48],[23234.77,0,1029.51,0,289.48]],
+  "Uttarakhand":[[442.24,0,519.66,0,31.24],[442.24,0,519.66,0,31.24],[461.17,0,519.66,0,31.24],[491.6,0,519.66,0,31.24],[491.6,0,519.66,0,31.24],[622.8,0,519.66,0,31.24],[602.1,0,733.66,0,31.24],[627.84,0,733.66,0,31.24]],
+  "West Bengal":[[8705.77,0,100,0,0],[8597.77,0,100,0,0],[8997.62,0,100,0,0],[8972.62,0,100,0,0],[8617.34,0,100,0,0],[8616.41,0,80,0,0],[8683.34,0,80,0,0],[8683.34,0,80,0,0]]
 };
 const ALIAS = {"Andaman and Nicobar":"Andaman & Nicobar Islands","Dadra and Nagar Haveli":"Dadra & Nagar Haveli and Daman & Diu","Daman and Diu":"Dadra & Nagar Haveli and Daman & Diu","Jammu and Kashmir":"Jammu & Kashmir","Orissa":"Odisha","Pondicherry":"Puducherry","Uttaranchal":"Uttarakhand"};
 const MODE = {
@@ -157,23 +186,25 @@ let shareHoverIdx = -1;
 const fmt = (v) => Math.round(v).toLocaleString("en-IN");
 const total = (s, y = year) => CAPACITY[s]?.[y] ?? 0;
 const mix = (s) => MIX[s] ?? [0,0,0,0];
-const conventional = (s) => CONVENTIONAL[s] ?? [0,0,0,0,0];
-const nonRenewableTotal = (s) => conventional(s).reduce((sum, value) => sum + value, 0);
+const conventional = (s, y = year) => CONVENTIONAL_HISTORY[s]?.[y] ?? [0,0,0,0,0];
+const nonRenewableTotal = (s, y = year) => conventional(s, y).reduce((sum, value) => sum + value, 0);
 const metric = (s) => mode === "total" ? total(s) : mode === "solar" ? mix(s)[0] : mode === "wind" ? mix(s)[1] : mix(s)[2];
 const maxMetric = () => Math.max(...Object.keys(CAPACITY).map(metric));
 const nameFor = (n) => ALIAS[n] ?? n;
 
-// Map coloring as a SHARE of all installed capacity (renewable + conventional).
-// total -> renewable/all ; solar -> solar/all ; wind -> wind/all ; hydro -> hydro/all.
-// Needs conventional data, which is real only for 2024-25 -> returns null (grey) for other years.
+// Map coloring as a SHARE of all installed capacity (renewable + conventional) for the
+// selected year. total -> renewable/all ; solar/wind/hydro -> that source / all.
+// Conventional is now year-wise (CONVENTIONAL_HISTORY), so `total` works for every year.
+// Per-source shares need source-by-year data (published for the Top-5 across all years
+// and for every state in 2024-25); elsewhere we return null (grey) rather than estimate.
 function shareMetric(s) {
-  if (year !== 7) return null;
-  const allCap = (CAPACITY[s]?.[7] ?? 0) + nonRenewableTotal(s);
+  const ren = total(s, year);
+  const allCap = ren + nonRenewableTotal(s, year);
   if (allCap <= 0) return null;
-  const num = mode === "total" ? (CAPACITY[s]?.[7] ?? 0)
-            : mode === "solar" ? mix(s)[0]
-            : mode === "wind" ? mix(s)[1]
-            : mix(s)[2];
+  if (mode === "total") return ren / allCap;
+  const sp = renewableSplit(s, year);
+  if (!sp.known) return null;
+  const num = mode === "solar" ? sp.solar : mode === "wind" ? sp.wind : sp.smallHydro;
   return num / allCap;
 }
 // Fixed 0..1 colour ramp so intensity reads as the actual percentage.
@@ -196,14 +227,11 @@ const nationalMix = () => {
   return sum;
 };
 
-const nationalConventional = () => {
+const nationalConventional = (y = year) => {
   const sum = [0,0,0,0,0];
-  Object.values(CONVENTIONAL).forEach(arr => {
-    sum[0] += arr[0];
-    sum[1] += arr[1];
-    sum[2] += arr[2];
-    sum[3] += arr[3];
-    sum[4] += arr[4];
+  Object.keys(CONVENTIONAL_HISTORY).forEach(s => {
+    const arr = conventional(s, y);
+    for (let i = 0; i < 5; i++) sum[i] += arr[i];
   });
   return sum;
 };
@@ -296,18 +324,15 @@ function color(v, max, state) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-// Map legend reflects the share metric (and that it's a 2024-25-only view)
+// Map legend reflects the share metric for the selected year.
 function updateLegend() {
   const low = $("legendLow"), high = $("legendHigh");
   if (!low || !high) return;
-  if (year !== 7) {
-    low.textContent = "Share shown for 2024-25 only";
-    high.textContent = "← drag slider to 2024-25";
-    return;
-  }
   const label = mode === "total" ? "renewable" : mode;
-  low.textContent = `Less ${label}`;
-  high.textContent = `More ${label}`;
+  // Per-source share before 2024-25 is only available for the Top-5 states.
+  const sparse = mode !== "total" && year !== 7;
+  low.textContent = sparse ? `Less ${label} (Top 5)` : `Less ${label}`;
+  high.textContent = sparse ? `More ${label} (Top 5)` : `More ${label}`;
 }
 
 // Drawing routine
@@ -392,17 +417,17 @@ function renewableSplit(entity, y) {
   const largeHydro = Math.max(0, tot - solar - wind - smallHydro - bio);
   return { known: true, solar, wind, smallHydro, bio, largeHydro };
 }
-// Conventional split [coal, lignite, gas, diesel, nuclear] — only published for 2024-25.
+// Conventional split [coal, lignite, gas, diesel, nuclear] for a given year.
+// For India we sum the states (the only available per-fuel breakdown).
 function conventionalSplit(entity, y) {
-  if (y !== 7) return { known: false };
-  if (entity === "India") return { known: true, values: nationalConventional() };
-  if (CONVENTIONAL[entity]) return { known: true, values: conventional(entity) };
+  if (entity === "India") return { known: true, values: nationalConventional(y) };
+  if (CONVENTIONAL_HISTORY[entity]) return { known: true, values: conventional(entity, y) };
   return { known: false };
 }
 // Conventional total (for the renewable-share strip).
 function conventionalTotal(entity, y) {
   if (entity === "India") return { known: true, value: NATIONAL_SHARE.total[y] - NATIONAL_SHARE.renewable[y] };
-  if (y === 7 && CONVENTIONAL[entity]) return { known: true, value: nonRenewableTotal(entity) };
+  if (CONVENTIONAL_HISTORY[entity]) return { known: true, value: nonRenewableTotal(entity, y) };
   return { known: false };
 }
 
@@ -519,7 +544,7 @@ function renderMixBars(ren, conv, convTot, renTotal, y) {
   const cg = elc("div", "mix-group-label"); cg.textContent = "Conventional Sources"; host.append(cg);
   const convRows = [["Coal", "--coal", 0], ["Lignite", "--lignite", 1], ["Gas", "--gas", 2], ["Diesel", "--diesel", 3], ["Nuclear", "--nuclear", 4]];
   for (const [label, colorVar, idx] of convRows) host.append(mixRow(label, conv.known ? conv.values[idx] : null, colorVar, max, true));
-  if (!conv.known) host.append(spanTxt("Conventional capacity is only published for 2024-25.", "mix-note"));
+  if (!conv.known) host.append(spanTxt("Conventional capacity is unavailable for this view.", "mix-note"));
 }
 
 // Render dynamic state rankings list card
@@ -833,7 +858,7 @@ function selectState(stateName) {
     selected = stateName;
     $("stateSearch").value = selected;
     $("clearSearch").style.display = "block";
-    announce(`Selected state: ${selected}. Total installed capacity is ${fmt(total(selected, 7) + nonRenewableTotal(selected))} MW.`);
+    announce(`Selected state: ${selected}. Total installed capacity is ${fmt(total(selected, year) + nonRenewableTotal(selected, year))} MW.`);
   }
   
   draw();
