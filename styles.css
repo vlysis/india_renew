@@ -363,6 +363,23 @@ body.dark .map-legend i {
   border-color: rgba(255,255,255,0.05);
 }
 
+/* Timeline Components */
+.timeline-card {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 44px minmax(130px, auto) minmax(140px, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin: 0 28px 24px;
+  padding: 14px 18px;
+  border: 1px solid var(--line-solid);
+  border-radius: 14px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
 .icon-button {
   width: 44px;
   height: 44px;
@@ -820,10 +837,9 @@ input[type="range"] {
   }
   .map-stage {
     min-height: 0;
-    /* Only the topbar (eyebrow + story button + theme toggle) remains on
-       phones once .map-wrap is hidden — collapse to a single row. */
-    grid-template-rows: auto;
-    padding-bottom: 18px;
+    /* The canvas map is hidden on phones, leaving the topbar + timeline rows;
+       the year slider still drives the leaderboard and charts. */
+    grid-template-rows: auto auto;
     border-radius: 16px;
   }
   .topbar {
@@ -841,6 +857,14 @@ input[type="range"] {
      it plays in a full-screen overlay (photos + captions + narration). */
   .map-wrap {
     display: none;
+  }
+  .timeline-card {
+    grid-template-columns: 44px 1fr;
+    margin: 0 16px 16px;
+    padding: 10px 14px;
+  }
+  .timeline-card input {
+    grid-column: 1 / -1;
   }
   .inspector {
     overflow-y: visible;

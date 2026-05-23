@@ -169,6 +169,7 @@ let year = 7;
 let selected = null; // null = National Overview
 let hover = null;
 let mode = "total";
+let timer = null;
 
 // Zoom and Pan Camera Engine
 let zoom = 1;
@@ -868,6 +869,8 @@ function selectState(stateName) {
 // Update year timeline position
 function setYear(i) {
   year = Number(i);
+  $("yearSlider").value = year;
+  $("yearLabel").textContent = YEARS[year];
 
   const natSum = Object.keys(CAPACITY).reduce((sum,s) => sum + total(s,year), 0);
   $("nationalTotal").textContent = fmt(natSum);
@@ -883,6 +886,7 @@ function setYear(i) {
 // Update active map metric mode
 function setMode(next) {
   mode = next;
+  $("modeLabel").textContent = MODE[mode][0];
 
   document.querySelectorAll(".mode-tab").forEach((b) => {
     const isActive = b.dataset.mode === mode;
@@ -1264,7 +1268,23 @@ themeToggle.addEventListener("click", () => {
 });
 
 
-// --- Tab Trigger Events ---
+// --- Slider and Tab Trigger Events ---
+$("yearSlider").addEventListener("input", (e) => setYear(e.target.value));
+
+$("playButton").addEventListener("click", () => {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+    $("playButton").textContent = "▶";
+    $("playButton").setAttribute("aria-label", "Play timeline animation");
+    announce("Timeline animation paused.");
+    return;
+  }
+  $("playButton").textContent = "Ⅱ";
+  $("playButton").setAttribute("aria-label", "Pause timeline animation");
+  timer = setInterval(() => setYear((year + 1) % YEARS.length), 1300);
+});
+
 document.querySelectorAll(".mode-tab").forEach((b) => {
   b.addEventListener("click", () => setMode(b.dataset.mode));
 });
