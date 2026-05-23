@@ -851,12 +851,17 @@ input[type="range"] {
   .stat-pill {
     display: none;
   }
-  /* Drop the canvas map on phones: the leaderboard + charts carry the
-     experience, and skipping the canvas avoids its redraw cost. The map
-     build is gated off in JS to match. The story tour still works here —
-     it plays in a full-screen overlay (photos + captions + narration). */
+  /* On phones the map is relocated (in JS) into the inspector, just below the
+     "All India" card. It needs an explicit height there since it's no longer a
+     row of the map-stage grid. touch-action:none (set on the canvas) keeps
+     one-finger pan / two-finger pinch from scrolling the page. */
   .map-wrap {
-    display: none;
+    flex: none;
+    height: 56vh;
+    min-height: 320px;
+    border: 1px solid var(--line-solid);
+    border-radius: 16px;
+    overflow: hidden;
   }
   .timeline-card {
     grid-template-columns: 44px 1fr;

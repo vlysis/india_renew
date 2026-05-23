@@ -147,10 +147,23 @@ const STATE_CENTROIDS = {
 
 const $ = (id) => document.getElementById(id);
 
-// On phones we drop the canvas map entirely (CSS hides .map-wrap) and lean on
-// the leaderboard + charts. Gate the map build and story tour off to match, so
-// we don't burn CPU rasterizing a map nobody can see.
 const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
+
+// Responsive map placement: on phones the map moves into the inspector, just
+// below the "All India" / selected-state card; on desktop it lives in the map
+// stage (before the timeline). Idempotent — safe to call on load and on resize.
+function placeMap() {
+  const wrap = document.querySelector(".map-wrap");
+  const stage = document.querySelector(".map-stage");
+  const timeline = document.querySelector(".timeline-card");
+  const stateCard = document.querySelector(".state-card");
+  if (!wrap || !stage || !stateCard) return;
+  if (isMobile()) {
+    if (stateCard.nextElementSibling !== wrap) stateCard.after(wrap);
+  } else if (wrap.parentElement !== stage) {
+    stage.insertBefore(wrap, timeline);
+  }
+}
 
 // Canvas and Rendering Contexts
 const canvas = $("indiaMap");
@@ -1294,9 +1307,9 @@ $("backToNational").addEventListener("click", () => {
 });
 
 addEventListener("resize", () => {
-  // Build the map only when it's actually visible (desktop). Crossing the
-  // breakpoint from mobile -> desktop rebuilds it here.
-  if (geo && !isMobile()) buildPaths();
+  // Re-place the map for the current breakpoint, then rebuild for the new size.
+  placeMap();
+  if (geo) buildPaths();
   updatePanel();
   drawShareTrend();
 });
@@ -1687,19 +1700,20 @@ document.addEventListener("keydown", (e) => {
 
 // --- Bootstrapping App & Initial Fetch ---
 initTheme();
+placeMap();
 
 fetch("data/india-states-lite.geojson")
   .then((r) => r.json())
   .then((j) => {
     geo = j;
-    if (!isMobile()) buildPaths();
+    placeMap();
+    buildPaths();
     setYear(year);
     setMode(mode);
     updatePanel();
     drawShareTrend();
     // Shareable deep-link: index.html?story auto-starts the narrated tour
-    // (skipped on phones, where the map-driven tour isn't shown)
-    if (!isMobile() && /[?&]story\b/.test(location.search)) startTour();
+    if (/[?&]story\b/.test(location.search)) startTour();
   })
   .catch((err) => {
     console.error("Error loading geojson boundary map data:", err);
