@@ -308,12 +308,14 @@ function requestBuild() {
 }
 
 // Build canvas path representations
+let builtDpr = 1; // dpr the paths were rasterized with — pick() needs it for hit tests
 function buildPaths() {
   if (!geo) return;
   const r = canvas.getBoundingClientRect();
   // Cap device pixel ratio at 2: phones report 3, which makes the canvas
   // backing store 9x the pixels and every redraw 9x the fill work.
   const dpr = Math.min(devicePixelRatio || 1, 2);
+  builtDpr = dpr;
 
   canvas.width = r.width*dpr;
   canvas.height = r.height*dpr;
@@ -388,12 +390,17 @@ function draw() {
   updateLegend();
 }
 
-// Click point-in-path picker
+// Click point-in-path picker.
+// isPointInPath takes the point in the canvas's *untransformed* (device-pixel)
+// space while the path is transformed by the CTM (the dpr scale set in
+// buildPaths), so the CSS-pixel point must be scaled by that same dpr — on a
+// dpr-1 screen this is a no-op, but on phones/retina taps landed on the state
+// at half/third the distance from the origin without it.
 function pick(e) {
   const r = canvas.getBoundingClientRect();
-  const x = e.clientX - r.left;
-  const y = e.clientY - r.top;
-  
+  const x = (e.clientX - r.left) * builtDpr;
+  const y = (e.clientY - r.top) * builtDpr;
+
   for (let i = paths.length - 1; i >= 0; i--) {
     if (ctx.isPointInPath(paths[i].path, x, y)) {
       return paths[i].state;
