@@ -807,6 +807,8 @@ input[type="range"] {
   width: 100%;
   height: 110px;
   display: block;
+  /* Drag horizontally to scrub per-year values; vertical swipes still scroll. */
+  touch-action: pan-y;
 }
 
 .learn-card h3 {
@@ -833,13 +835,15 @@ input[type="range"] {
   .app-shell {
     grid-template-columns: 1fr;
     padding: 12px;
+    /* Room for the fixed bottom timeline dock so the last card stays readable. */
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
     gap: 16px;
   }
   .map-stage {
     min-height: 0;
-    /* The canvas map is hidden on phones, leaving the topbar + timeline rows;
-       the year slider still drives the leaderboard and charts. */
-    grid-template-rows: auto auto;
+    /* Only the topbar remains in the stage on phones: the map is relocated into
+       the inspector and the timeline becomes a fixed bottom dock. */
+    grid-template-rows: auto;
     border-radius: 16px;
   }
   .topbar {
@@ -867,13 +871,40 @@ input[type="range"] {
   #indiaMap {
     touch-action: pan-y;
   }
+  /* The year control drives the whole page (map, leaderboard, charts), so on
+     phones it floats as a thumb-reachable dock pinned to the bottom edge. */
   .timeline-card {
-    grid-template-columns: 44px 1fr;
-    margin: 0 16px 16px;
-    padding: 10px 14px;
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    z-index: 50;
+    grid-template-columns: 44px auto 1fr;
+    margin: 0;
+    padding: 8px 14px;
+    background: color-mix(in srgb, var(--bg-card) 82%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+  }
+  .timeline-card .year-readout span {
+    display: none; /* keep the dock one compact row: play | year | slider */
   }
   .timeline-card input {
-    grid-column: 1 / -1;
+    /* Widen the touch hit zone to 32px while the painted track stays 6px. */
+    height: 32px;
+    padding: 13px 0;
+    background-clip: content-box;
+  }
+  /* The story overlay's controls are also bottom-anchored; hide the dock so
+     they don't stack. */
+  body.touring .timeline-card {
+    display: none;
+  }
+  /* 44px touch targets for the map zoom controls. */
+  .map-controls button {
+    width: 44px;
+    height: 44px;
   }
   .inspector {
     overflow-y: visible;
@@ -1095,6 +1126,23 @@ body.touring .map-stage {
   }
   .story-card {
     padding: 24px 16px 14px;
+  }
+  /* Keep Back / Pause / Next as one centered row of comfortable targets and
+     pin the icon buttons to the card corners so nothing wraps to an orphan row. */
+  .story-btn {
+    min-height: 44px;
+  }
+  .story-btn.icon {
+    position: absolute;
+    top: 10px;
+    width: 44px;
+    z-index: 2;
+  }
+  #storyExit {
+    right: 10px;
+  }
+  #storySound {
+    left: 10px;
   }
 }
 

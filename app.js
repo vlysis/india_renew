@@ -150,18 +150,22 @@ const $ = (id) => document.getElementById(id);
 const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
 
 // Responsive map placement: on phones the map moves into the inspector, just
-// below the "All India" / selected-state card; on desktop it lives in the map
-// stage (before the timeline). Idempotent — safe to call on load and on resize.
+// below the "All India" / selected-state card, and the timeline docks to the
+// bottom of the viewport (it must live outside .map-stage there — the stage's
+// backdrop-filter creates a containing block that would trap position:fixed).
+// On desktop both live in the map stage. Idempotent — safe on load and resize.
 function placeMap() {
   const wrap = document.querySelector(".map-wrap");
   const stage = document.querySelector(".map-stage");
   const timeline = document.querySelector(".timeline-card");
   const stateCard = document.querySelector(".state-card");
-  if (!wrap || !stage || !stateCard) return;
+  if (!wrap || !stage || !stateCard || !timeline) return;
   if (isMobile()) {
     if (stateCard.nextElementSibling !== wrap) stateCard.after(wrap);
-  } else if (wrap.parentElement !== stage) {
-    stage.insertBefore(wrap, timeline);
+    if (timeline.parentElement !== document.body) document.body.appendChild(timeline);
+  } else {
+    if (timeline.parentElement !== stage) stage.appendChild(timeline);
+    if (wrap.parentElement !== stage) stage.insertBefore(wrap, timeline);
   }
 }
 
@@ -1081,6 +1085,13 @@ canvas.addEventListener("click", (e) => {
   if (s && CAPACITY[s]) {
     selectState(s);
   }
+  // On touch there's no mouseleave, so the tooltip a tap's synthetic mousemove
+  // opened would stay up forever. The state card shows the same info anyway.
+  if (isMobile()) {
+    hover = null;
+    $("mapTooltip").style.opacity = "0";
+    draw();
+  }
 });
 
 // Touch Navigation: one finger pans, two fingers pinch-to-zoom.
@@ -1214,46 +1225,40 @@ $("zoomReset").addEventListener("click", () => {
 });
 
 
-// --- Interactive Chart Hover Events ---
-spark.addEventListener("mousemove", (e) => {
-  const r = spark.getBoundingClientRect();
-  const x = e.clientX - r.left;
+// --- Interactive Chart Hover / Touch-Scrub Events ---
+// Map an x position over a chart canvas to a data-point index (or -1).
+function chartIdxFromX(canvasEl, clientX, points) {
+  const r = canvasEl.getBoundingClientRect();
   const pad = 15;
-  const spacing = (r.width - pad * 2) / 7;
-  const idx = Math.round((x - pad) / spacing);
-  
-  if (idx >= 0 && idx < 8) {
-    if (sparkHoverIdx !== idx) {
-      sparkHoverIdx = idx;
-      drawSpark(selected ? (CAPACITY[selected] ?? []) : NATIONAL_SHARE.renewable.slice(0, 8));
-    }
-  }
-});
+  const spacing = (r.width - pad * 2) / (points - 1);
+  const idx = Math.round((clientX - r.left - pad) / spacing);
+  return idx >= 0 && idx < points ? idx : -1;
+}
 
-spark.addEventListener("mouseleave", () => {
-  sparkHoverIdx = -1;
-  drawSpark(selected ? (CAPACITY[selected] ?? []) : NATIONAL_SHARE.renewable.slice(0, 8));
-});
+const redrawSpark = () => drawSpark(selected ? (CAPACITY[selected] ?? []) : NATIONAL_SHARE.renewable.slice(0, 8));
 
-shareTrend.addEventListener("mousemove", (e) => {
-  const r = shareTrend.getBoundingClientRect();
-  const x = e.clientX - r.left;
-  const pad = 15;
-  const spacing = (r.width - pad * 2) / 8;
-  const idx = Math.round((x - pad) / spacing);
-  
-  if (idx >= 0 && idx < 9) {
-    if (shareHoverIdx !== idx) {
-      shareHoverIdx = idx;
-      drawShareTrend();
-    }
-  }
-});
+// Wire hover (mouse) and horizontal scrubbing (touch) for a readout chart.
+// touch-action: pan-y on the canvas keeps vertical swipes scrolling the page.
+function wireChartScrub(canvasEl, points, setIdx, redraw) {
+  const moveTo = (clientX) => { if (setIdx(chartIdxFromX(canvasEl, clientX, points))) redraw(); };
+  canvasEl.addEventListener("mousemove", (e) => moveTo(e.clientX));
+  canvasEl.addEventListener("mouseleave", () => { setIdx(-1); redraw(); });
+  canvasEl.addEventListener("touchstart", (e) => moveTo(e.touches[0].clientX), { passive: true });
+  canvasEl.addEventListener("touchmove", (e) => moveTo(e.touches[0].clientX), { passive: true });
+  canvasEl.addEventListener("touchend", () => { setIdx(-1); redraw(); });
+}
 
-shareTrend.addEventListener("mouseleave", () => {
-  shareHoverIdx = -1;
-  drawShareTrend();
-});
+wireChartScrub(spark, 8, (i) => {
+  if (i === sparkHoverIdx) return false;
+  sparkHoverIdx = i;
+  return true;
+}, redrawSpark);
+
+wireChartScrub(shareTrend, 9, (i) => {
+  if (i === shareHoverIdx) return false;
+  shareHoverIdx = i;
+  return true;
+}, drawShareTrend);
 
 
 // --- Dark Mode / Light Mode Theme Switching ---
@@ -1309,9 +1314,18 @@ $("backToNational").addEventListener("click", () => {
   selectState(null);
 });
 
+// Mobile browsers fire resize when the URL bar collapses/expands mid-scroll;
+// skip the heavy rebuild unless the canvas box actually changed. A rotation or
+// breakpoint crossing changes the box (placeMap may move it), so those rebuild.
+let lastCanvasW = 0;
+let lastCanvasH = 0;
 addEventListener("resize", () => {
   // Re-place the map for the current breakpoint, then rebuild for the new size.
   placeMap();
+  const r = canvas.getBoundingClientRect();
+  if (r.width === lastCanvasW && r.height === lastCanvasH) return;
+  lastCanvasW = r.width;
+  lastCanvasH = r.height;
   if (geo) buildPaths();
   updatePanel();
   drawShareTrend();
