@@ -1131,6 +1131,9 @@ canvas.addEventListener("touchmove", (e) => {
     const dx = e.touches[0].clientX - startDrag.x;
     const dy = e.touches[0].clientY - startDrag.y;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      // On mobile, let one-finger gestures scroll the page (touch-action: pan-y);
+      // map pan/zoom is two-finger there. Mark the move so it isn't read as a tap.
+      if (isMobile()) { dragMoved = true; return; }
       e.preventDefault();
       dragMoved = true;
       pan.x = basePan.x + dx;

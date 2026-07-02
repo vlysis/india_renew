@@ -853,8 +853,7 @@ input[type="range"] {
   }
   /* On phones the map is relocated (in JS) into the inspector, just below the
      "All India" card. It needs an explicit height there since it's no longer a
-     row of the map-stage grid. touch-action:none (set on the canvas) keeps
-     one-finger pan / two-finger pinch from scrolling the page. */
+     row of the map-stage grid. */
   .map-wrap {
     flex: none;
     height: 56vh;
@@ -862,6 +861,11 @@ input[type="range"] {
     border: 1px solid var(--line-solid);
     border-radius: 16px;
     overflow: hidden;
+  }
+  /* Let a one-finger vertical swipe scroll the page through the map; the map is
+     panned/zoomed with two fingers (pinch) and tapped to select. */
+  #indiaMap {
+    touch-action: pan-y;
   }
   .timeline-card {
     grid-template-columns: 44px 1fr;
