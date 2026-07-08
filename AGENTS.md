@@ -30,7 +30,7 @@ python3 -m http.server 5188      # then open http://127.0.0.1:5188
 | `index.html` | Markup + element IDs the JS wires to. ~200 lines. |
 | `app.js` | All app logic. Data constants at top, then rendering/interaction. ~1670 lines. |
 | `styles.css` | All styling, theming (CSS vars + `body.dark`), responsive rules. |
-| `data/india-states-lite.geojson` | Simplified state polygons (only a `name` prop). |
+| `data/india-states-lite.geojson` | Simplified state polygons (only a `name` prop), official Government of India / Survey of India depiction (Ladakh incl. Gilgit-Baltistan + Aksai Chin). Built by `scripts/build-boundaries.mjs`. |
 | `data/source-history.json` | Year-wise renewable mix for All-India + Top-5 states. |
 | `data/conventional-history.json` | Year-wise state conventional capacity `[coal,lignite,gas,diesel,nuclear]` (from CEA; see below). |
 | `scripts/*.mjs` | One-off Node data-prep tools (not run at page load). |
@@ -56,8 +56,9 @@ Rendering model:
 ## Conventions & principles
 
 - **Real data only — never fabricate or estimate.** Where a year/state figure isn't published, show "unknown"/grey rather than interpolating. Several functions (`shareMetric`, `conventionalSplit`, `conventionalTotal`) deliberately return `null`/`{known:false}` for unavailable data. Preserve this.
-- **State names** must round-trip through `nameFor`/`ALIAS` to canonical forms. The open boundary layer uses legacy geography (combined J&K/Ladakh and Andhra/Telangana); data is anchored to canonical names even when polygons are legacy. Don't "fix" by renaming polygons.
-- **Responsive:** at `≤900px` the canvas map is hidden and the experience is leaderboard-first; the map build is skipped in JS to save CPU. Keep mobile changes behind the existing `@media (max-width: 900px)` block and the `isMobile()` guard in `app.js`.
+- **State names** must round-trip through `nameFor`/`ALIAS` to canonical forms. The boundary file bakes canonical names at build time (see `scripts/build-boundaries.mjs`), so `ALIAS` is defensive. One quirk: Dadra & Nagar Haveli and Daman & Diu are **two polygons sharing one canonical name** — per-state-name selection/choropleth already treats them as one entity.
+- **Boundary depiction is a hard requirement:** the map must show India's boundaries as per the Government of India / Survey of India political map (Ladakh reaching ≥37°N incl. Gilgit-Baltistan and Aksai Chin). `build-boundaries.mjs` asserts this; never swap in a de-facto-boundary dataset.
+- **Responsive:** at `≤900px` the map moves below the state card in the inspector (`placeMap()` in `app.js`) and the year timeline becomes a fixed bottom dock; one-finger swipes scroll past the map, two-finger pinch zooms it. Keep mobile changes behind the existing `@media (max-width: 900px)` block and the `isMobile()` guard.
 - **Accessibility:** preserve ARIA roles, `aria-live` regions, the `#ariaAnnouncements` channel (`announce()`), keyboard handlers, and `prefers-reduced-motion` checks.
 - **Theming:** use existing CSS custom properties; support both light and `body.dark`.
 - **CSS specificity:** base component rules sometimes appear *after* media queries in `styles.css`, so a later base rule can override a media-query rule of equal specificity — bump specificity (e.g. `.topbar .story-launch-btn`) when a responsive override doesn't take.
@@ -66,7 +67,7 @@ Rendering model:
 
 These are manual, not part of any build:
 
-- `node scripts/simplify-geojson.mjs` — re-simplify the state polygons (Douglas–Peucker, no deps).
+- `node scripts/build-boundaries.mjs` — rebuild `data/india-states-lite.geojson` from datta07/INDIAN-SHAPEFILES (pinned commit, MIT): downloads, renames `STNAME_SH` to the app's canonical state names, Douglas–Peucker-simplifies, and asserts the official-depiction extent (Ladakh ≥37°N/80.2°E) plus full 36-state coverage before writing. No deps.
 - `node scripts/build-conventional-history.mjs` — rebuild `data/conventional-history.json` from CEA "Installed Capacity (incl. allocated shares)" reports. **Requires `pdftotext` (poppler) on PATH.** Downloads the 8 FY-end PDFs (URL map is in the script), parses each state's *Sub-Total* row, normalizes names. Notes: it's allocation-wise (differs from the curated `CONVENTIONAL` snapshot in `app.js`); the 2017-18 report folds lignite into coal; NLC/DVC/central-unallocated rows are excluded; Ladakh is folded into J&K.
 
 When adding a data year or source, update `YEARS` and every aligned series together so indices stay consistent.

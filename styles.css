@@ -821,13 +821,8 @@ input[type="range"] {
   color: var(--muted);
   line-height: 1.45;
 }
-.source-note, .boundary-note {
+.source-note {
   margin-bottom: 0;
-}
-.boundary-note {
-  padding-top: 10px;
-  color: var(--muted);
-  font-size: 0.76rem;
 }
 
 /* Responsive Styles */
